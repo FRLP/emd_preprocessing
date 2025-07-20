@@ -1,0 +1,216 @@
+import numpy as np
+import cvxpy as cp
+import sympy as sp
+import time
+import sys
+import csv
+import gensim
+import math
+from tqdm import tqdm
+
+from emd_preprocessing import sorters, reducers, calculate_emd, JaSentenceVectorizer
+
+from data.sentences import sentences
+
+sys.dont_write_bytecode = True
+
+def record(name, data):
+    with open(name, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(data)
+
+vectorizer = JaSentenceVectorizer(gensim.models.KeyedVectors.load("../src/chive-1.3-mc5.kv"))
+
+for i, sentence in enumerate(sentences):
+    print(f"\n### SENTENCE - {i} ###")
+    print("--- vectorize ---")
+    vectorize_start = time.time()
+    words_1, vectorized_sentence_1 = vectorizer.sentence_to_vector(sentence[0])
+    words_2, vectorized_sentence_2 = vectorizer.sentence_to_vector(sentence[1])
+    vectorize_end = time.time()
+    vectorize_time = vectorize_end - vectorize_start
+    print("--- reduce ---")
+    print("[ NOTSORTED/KMeansReducer ]")
+    for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
+        start = time.time()
+        vec1, w1 = reducers.KMeansReducer(int(len(words_1)*c)).reduce(vectorized_sentence_1)
+        vec2, w2 = reducers.KMeansReducer(int(len(words_2)*c)).reduce(vectorized_sentence_2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/NOTSORTED/KMeansReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ NOTSORTED/KMeansInitReducer ]")
+    for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
+        start = time.time()
+        vec1, w1 = reducers.KMeansInitReducer(int(len(words_1)*c)).reduce(vectorized_sentence_1)
+        vec2, w2 = reducers.KMeansInitReducer(int(len(words_2)*c)).reduce(vectorized_sentence_2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/NOTSORTED/KMeansInitReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ NOTSORTED/RDPReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        vec1, w1 = reducers.RDPReducer(c).reduce(vectorized_sentence_1)
+        vec2, w2 = reducers.RDPReducer(c).reduce(vectorized_sentence_2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/NOTSORTED/RDPReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ NOTSORTED/RDPRawReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        vec1, w1 = reducers.RDPRawReducer(c).reduce(vectorized_sentence_1)
+        vec2, w2 = reducers.RDPRawReducer(c).reduce(vectorized_sentence_2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/NOTSORTED/RDPRawReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ NOTSORTED/ReverseRDPReducer ]")
+    for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
+        start = time.time()
+        vec1, w1 = reducers.ReverseRDPReducer(int(len(words_1)*c)).reduce(vectorized_sentence_1)
+        vec2, w2 = reducers.ReverseRDPReducer(int(len(words_2)*c)).reduce(vectorized_sentence_2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/NOTSORTED/ReverseRDPReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ NOTSORTED/VWReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        vec1, w1 = reducers.VWReducer(c).reduce(vectorized_sentence_1)
+        vec2, w2 = reducers.VWReducer(c).reduce(vectorized_sentence_2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/NOTSORTED/VWReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ NOTSORTED/VWRawReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        vec1, w1 = reducers.VWRawReducer(c).reduce(vectorized_sentence_1)
+        vec2, w2 = reducers.VWRawReducer(c).reduce(vectorized_sentence_2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/NOTSORTED/VWRawReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ NOTSORTED/ReverseVWReducer ]")
+    for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
+        start = time.time()
+        vec1, w1 = reducers.ReverseVWReducer(int(len(words_1)*c)).reduce(vectorized_sentence_1)
+        vec2, w2 = reducers.ReverseVWReducer(int(len(words_2)*c)).reduce(vectorized_sentence_2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/NOTSORTED/ReverseVWReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ KDTree/RDPReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        s1 = sorters.KDTreeGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.KDTreeGreedySorter(vectorized_sentence_2).sort()
+        reducer = reducers.RDPReducer(epsilon=c)
+        vec1, w1 = reducer.reduce(s1)
+        vec2, w2 = reducer.reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/KDTree/RDPReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ KDTree/RDPRawReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        s1 = sorters.KDTreeGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.KDTreeGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.RDPRawReducer(c).reduce(s1)
+        vec2, w2 = reducers.RDPRawReducer(c).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/KDTree/RDPRawReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ KDTree/ReverseRDPReducer ]")
+    for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
+        start = time.time()
+        s1 = sorters.KDTreeGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.KDTreeGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.ReverseRDPReducer(int(len(words_1)*c)).reduce(s1)
+        vec2, w2 = reducers.ReverseRDPReducer(int(len(words_2)*c)).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/KDTree/ReverseRDPReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ KDTree/VWReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        s1 = sorters.KDTreeGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.KDTreeGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.VWReducer(c).reduce(s1)
+        vec2, w2 = reducers.VWReducer(c).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/KDTree/VWReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ KDTree/VWRawReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        s1 = sorters.KDTreeGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.KDTreeGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.VWRawReducer(c).reduce(s1)
+        vec2, w2 = reducers.VWRawReducer(c).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/KDTree/VWRawReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ KDTree/ReverseVWReducer ]")
+    for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
+        start = time.time()
+        s1 = sorters.KDTreeGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.KDTreeGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.ReverseVWReducer(int(len(words_1)*c)).reduce(s1)
+        vec2, w2 = reducers.ReverseVWReducer(int(len(words_2)*c)).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/KDTree/ReverseVWReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ HNSW/RDPReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        s1 = sorters.HNSWGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.HNSWGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.RDPReducer(c).reduce(s1)
+        vec2, w2 = reducers.RDPReducer(c).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/HNSW/RDPReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ HNSW/RDPRawReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        s1 = sorters.HNSWGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.HNSWGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.RDPRawReducer(c).reduce(s1)
+        vec2, w2 = reducers.RDPRawReducer(c).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/HNSW/RDPRawReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ HNSW/ReverseRDPReducer ]")
+    for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
+        start = time.time()
+        s1 = sorters.HNSWGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.HNSWGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.ReverseRDPReducer(int(len(words_1)*c)).reduce(s1)
+        vec2, w2 = reducers.ReverseRDPReducer(int(len(words_1)*c)).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/HNSW/ReverseRDPReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ HNSW/VWReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        s1 = sorters.HNSWGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.HNSWGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.VWReducer(c).reduce(s1)
+        vec2, w2 = reducers.VWReducer(c).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/HNSW/VWReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ HNSW/VWRawReducer ]")
+    for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
+        s1 = sorters.HNSWGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.HNSWGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.VWRawReducer(c).reduce(s1)
+        vec2, w2 = reducers.VWRawReducer(c).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/HNSW/VWRawReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    print("[ HNSW/ReverseVWReducer ]")
+    for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
+        start = time.time()
+        s1 = sorters.HNSWGreedySorter(vectorized_sentence_1).sort()
+        s2 = sorters.HNSWGreedySorter(vectorized_sentence_2).sort()
+        vec1, w1 = reducers.ReverseVWReducer(int(len(words_1)*c)).reduce(s1)
+        vec2, w2 = reducers.ReverseVWReducer(int(len(words_1)*c)).reduce(s2)
+        emd = calculate_emd(vec1, vec2, w1, w2)
+        end = time.time()
+        record("../result/HNSW/ReverseVWReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
