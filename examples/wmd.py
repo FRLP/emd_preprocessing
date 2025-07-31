@@ -30,6 +30,7 @@ for i, sentence in enumerate(sentences):
     vectorize_end = time.time()
     vectorize_time = vectorize_end - vectorize_start
     print("--- reduce ---")
+    """
     print("[ NOTSORTED/KMeansReducer ]")
     for c in tqdm([0.90, 0.80, 0.70, 0.60, 0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.38, 0.36, 0.34, 0.32, 0.30, 0.20, 0.10]):
         start = time.time()
@@ -94,8 +95,10 @@ for i, sentence in enumerate(sentences):
         emd = calculate_emd(vec1, vec2, w1, w2)
         end = time.time()
         record("../result/NOTSORTED/ReverseVWReducer.csv", [i, c, len(vec1), len(vec2), emd, end-start])
+    """
     print("[ KDTree/RDPReducer ]")
     for c in tqdm([0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]):
+        start = time.time()
         s1 = sorters.KDTreeGreedySorter(vectorized_sentence_1).sort()
         s2 = sorters.KDTreeGreedySorter(vectorized_sentence_2).sort()
         reducer = reducers.RDPReducer(epsilon=c)

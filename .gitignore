@@ -8,9 +8,16 @@ pyvenv.cfg
 build/*
 emd_preprocessing.egg-info/*
 
+!result/
 result/*
+!result/HNSW/
+result/HNSW/*
 !result/HNSW/.gitkeep
+!result/KDTree/
+result/KDTree/*
 !result/KDTree/.gitkeep
+!result/NOTSORTED/
+result/NOTSORTED/*
 !result/NOTSORTED/.gitkeep
 
 git/*
